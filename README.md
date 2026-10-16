@@ -38,7 +38,16 @@ pip install -e .
 streamlit run app.py
 ```
 
-### 3. Run Unit Tests
+### 3. Run Exploratory Data Analysis & KPI Audit
+```bash
+# Run automated EDA (Task 2.4)
+python scripts/eda.py
+
+# Run mathematical KPI cross-check audit (Task 7.5)
+python scripts/verify_kpis.py
+```
+
+### 4. Run Unit Tests
 ```bash
 uv run pytest
 # or

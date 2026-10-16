@@ -123,3 +123,31 @@ def test_full_dataset_churn_rate_acceptance_criterion():
         churn_rate = df["churned"].mean() * 100.0
         # Overall churn rate should be approximately 20% (+/- 2%)
         assert 18.0 <= churn_rate <= 22.0
+
+
+def test_kpi_crosscheck_task_7_5():
+    """Cross-check 3 KPI values manually against pandas ground truth (Task 7.5)."""
+    root_csv = Path("retail_banking_churn.csv")
+    data_csv = Path("data/retail_banking_churn.csv")
+    target = root_csv if root_csv.exists() else data_csv
+
+    if target.exists():
+        df = pd.read_csv(target)
+        kpis = compute_kpis(df)
+
+        # Cross-check 1: Churn Rate
+        manual_churn = (df["churned"].sum() / len(df)) * 100.0
+        assert abs(manual_churn - kpis["churn_rate"]) < 1e-5
+
+        # Cross-check 2: Balance at Risk
+        manual_bal_risk = df.loc[df["churned"] == 1, "balance"].sum()
+        assert abs(manual_bal_risk - kpis["balance_at_risk"]) < 1e-4
+
+        # Cross-check 3: Multi-product churn
+        multi_subset = df[df["num_products"] >= 3]
+        manual_multi = multi_subset["churned"].mean() * 100.0
+        by_prod = churn_by(df, "num_products")
+        p3_4 = by_prod[by_prod["num_products"] >= 3]
+        module_multi = (p3_4["churned_count"].sum() / p3_4["customer_count"].sum()) * 100.0
+        assert abs(manual_multi - module_multi) < 1e-5
+

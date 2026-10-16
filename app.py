@@ -420,6 +420,33 @@ with tab5:
         st.metric("Historical Churn in Flagged Group", f"{high_risk_churn_rate:.1f}%")
 
     st.markdown("### High-Risk Customer Action List (Sorted by Balance)")
+
+    # Actionable Filter Controls for Risk Table
+    f_col1, f_col2 = st.columns([1, 1])
+    with f_col1:
+        risk_filter_type = st.selectbox(
+            "Filter by Specific Risk Factor:",
+            options=["All Flagged Accounts", "Multi-Product (3+)", "Inactive High-Balance", "New Senior Account"],
+            index=0,
+        )
+    with f_col2:
+        search_query = st.text_input(
+            "🔍 Search Account by Customer ID:",
+            placeholder="e.g. 100005",
+        )
+
+    # Apply table filters
+    action_table_df = high_risk_df.copy()
+    if risk_filter_type != "All Flagged Accounts":
+        action_table_df = action_table_df[
+            action_table_df["risk_factors"].str.contains(risk_filter_type, na=False)
+        ]
+
+    if search_query.strip():
+        action_table_df = action_table_df[
+            action_table_df["customer_id"].astype(str).str.contains(search_query.strip(), na=False)
+        ]
+
     display_cols = [
         "customer_id",
         "city",
@@ -430,15 +457,16 @@ with tab5:
         "is_active_member",
         "tenure_years",
         "customer_segment",
+        "risk_factors",
         "churned",
     ]
 
     st.dataframe(
-        high_risk_df[display_cols].style.format(
+        action_table_df[display_cols].style.format(
             {
                 "balance": "₹{:,.2f}",
                 "is_active_member": lambda x: "Active" if x == 1 else "Inactive",
-                "churned": lambda x: "Left" if x == 1 else "Active",
+                "churned": lambda x: "Left Bank" if x == 1 else "Active",
             }
         ),
         use_container_width=True,

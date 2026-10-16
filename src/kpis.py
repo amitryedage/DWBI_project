@@ -91,17 +91,29 @@ def get_high_risk_customers(df: pd.DataFrame) -> pd.DataFrame:
     OR (is_active_member == 0 AND balance > 100,000)
     OR (age >= 50 AND tenure_years <= 2)
     Sorted by balance descending.
+    Annotates accounts with specific risk trigger reasons.
     """
     if df.empty:
         return df.copy()
 
-    condition = (
-        (df["num_products"] >= 3)
-        | ((df["is_active_member"] == 0) & (df["balance"] > 100000))
-        | ((df["age"] >= 50) & (df["tenure_years"] <= 2))
-    )
+    cond_prod = df["num_products"] >= 3
+    cond_inact = (df["is_active_member"] == 0) & (df["balance"] > 100000)
+    cond_senior = (df["age"] >= 50) & (df["tenure_years"] <= 2)
 
+    condition = cond_prod | cond_inact | cond_senior
     high_risk_df = df[condition].copy()
+
+    def identify_reasons(row: pd.Series) -> str:
+        reasons = []
+        if row["num_products"] >= 3:
+            reasons.append("Multi-Product (3+)")
+        if row["is_active_member"] == 0 and row["balance"] > 100000:
+            reasons.append("Inactive High-Balance")
+        if row["age"] >= 50 and row["tenure_years"] <= 2:
+            reasons.append("New Senior Account")
+        return " & ".join(reasons)
+
+    high_risk_df["risk_factors"] = high_risk_df.apply(identify_reasons, axis=1)
     high_risk_df = high_risk_df.sort_values(by="balance", ascending=False)
     return high_risk_df
 

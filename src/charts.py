@@ -319,3 +319,33 @@ def create_heatmap_products_vs_activity(df: pd.DataFrame) -> go.Figure:
         yaxis=dict(title="", showgrid=False),
     )
     return fig
+
+
+def create_bar_feature_importance(importance_df: pd.DataFrame) -> go.Figure:
+    """Horizontal bar chart showing relative feature importance for churn prediction."""
+    if importance_df.empty:
+        fig = go.Figure()
+        fig.update_layout(**PLOT_LAYOUT, title="Feature Importance (No Data)")
+        return fig
+
+    sorted_df = importance_df.sort_values(by="importance_pct", ascending=True)
+
+    fig = go.Figure(
+        go.Bar(
+            x=sorted_df["importance_pct"],
+            y=sorted_df["feature"],
+            orientation="h",
+            marker=dict(color=PRIMARY_BLUE),
+            text=sorted_df["importance_pct"].apply(lambda v: f"{v:.1f}%"),
+            textposition="outside",
+            hovertemplate="<b>%{y}</b><br>Relative Impact: %{x:.2f}%<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        **PLOT_LAYOUT,
+        title=dict(text="Key Predictive Churn Drivers (Feature Importance)", font=dict(size=16)),
+        xaxis=dict(title="Relative Predictive Importance (%)", showgrid=True, gridcolor="#EDF2F7"),
+        yaxis=dict(title="", showgrid=False),
+    )
+    return fig
+

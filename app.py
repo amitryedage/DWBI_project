@@ -12,6 +12,7 @@ from src.charts import (
     create_bar_churn_by_city,
     create_bar_churn_by_products,
     create_bar_customers_by_tenure_band,
+    create_bar_feature_importance,
     create_balance_distribution,
     create_donut_churn,
     create_heatmap_products_vs_activity,
@@ -24,6 +25,7 @@ from src.kpis import (
     get_high_risk_customers,
     get_segment_kpis,
 )
+from src.model import predict_single_customer_churn, train_churn_model
 
 # -----------------------------------------------------------------------------
 # 1. Page Configuration & Custom CSS (Light Theme - PRD Section 7 & 10)
@@ -295,12 +297,13 @@ st.markdown("<hr style='margin: 15px 0 25px 0; border: none; border-top: 1px sol
 # -----------------------------------------------------------------------------
 # 6. Tab Navigation (5 Core Pages)
 # -----------------------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Page 1: Overview",
-    "💰 Page 2: Balance Analysis",
-    "⏳ Page 3: Tenure Analysis",
-    "📦 Page 4: Products Held",
-    "⚠️ Page 5: Risk & Data",
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    " Page 1: Overview",
+    "Page 2: Balance Analysis",
+    " Page 3: Tenure Analysis",
+    " Page 4: Products Held",
+    " Page 5: Risk & Data",
+    "Page 6: What-If Simulator & ML",
 ])
 
 # --- TAB 1: OVERVIEW ---
@@ -478,7 +481,7 @@ with tab5:
     with d_col1:
         csv_filtered = df_filtered.to_csv(index=False).encode("utf-8")
         st.download_button(
-            label="📥 Download Current Filtered Data (CSV)",
+            label=" Download Current Filtered Data (CSV)",
             data=csv_filtered,
             file_name="filtered_banking_churn_data.csv",
             mime="text/csv",
@@ -488,9 +491,153 @@ with tab5:
     with d_col2:
         csv_high_risk = high_risk_df.to_csv(index=False).encode("utf-8")
         st.download_button(
-            label="⚠️ Download High-Risk Action List (CSV)",
+            label=" Download High-Risk Action List (CSV)",
             data=csv_high_risk,
             file_name="high_risk_customers_list.csv",
             mime="text/csv",
             use_container_width=True,
         )
+
+
+# --- TAB 6: WHAT-IF SIMULATOR & ML (PRD STRETCH GOALS) ---
+with tab6:
+    st.subheader("Predictive Churn Modeling & 'What-If' Retention Simulator")
+    st.markdown(
+        "Leverage machine learning algorithms to evaluate customer attrition probability and simulate proactive retention interventions."
+    )
+
+    # 1. Model Configuration
+    m_col1, m_col2 = st.columns([1, 1])
+    with m_col1:
+        chosen_algo = st.radio(
+            "Predictive Algorithm Architecture:",
+            options=["Random Forest Classifier", "Logistic Regression"],
+            horizontal=True,
+        )
+
+    algo_name = "Logistic Regression" if "Logistic" in chosen_algo else "Random Forest"
+    model_bundle = train_churn_model(df_raw, model_type=algo_name)
+
+    # Model Metric Highlights
+    mod_c1, mod_c2, mod_c3 = st.columns(3)
+    with mod_c1:
+        st.metric("Model Training Fit / Accuracy", f"{model_bundle['accuracy'] * 100:.1f}%")
+    with mod_c2:
+        engine_label = "Scikit-Learn Optimized" if model_bundle["sklearn_used"] else "NumPy Pure Engine"
+        st.metric("Computation Engine", engine_label)
+    with mod_c3:
+        st.metric("Training Population", f"{len(df_raw):,} Customers")
+
+    # 2. Feature Importance Chart
+    st.markdown("#### 🧠 Predictive Feature Importance")
+    fig_importance = create_bar_feature_importance(model_bundle["importance_df"])
+    st.plotly_chart(fig_importance, use_container_width=True)
+
+    # 3. Interactive "What-If" Simulator
+    st.markdown("---")
+    st.markdown("### 🕹️ Interactive Customer 'What-If' Retention Simulator")
+    st.markdown(
+        "Simulate intervention strategies on an account to quantify the expected reduction in churn probability."
+    )
+
+    sim_c1, sim_c2 = st.columns([1, 1])
+
+    with sim_c1:
+        st.markdown("##### 👤 Customer Portfolio Attributes")
+        sim_num_prod = st.slider("Products Held", min_value=1, max_value=4, value=3)
+        sim_active_str = st.selectbox("Member Activity Status", ["Inactive Member", "Active Member"], index=0)
+        sim_is_active = 1 if "Active" in sim_active_str else 0
+        sim_age = st.slider("Customer Age", min_value=18, max_value=80, value=52)
+        sim_balance = st.number_input("Account Balance (INR)", min_value=0.0, max_value=300000.0, value=115000.0, step=5000.0)
+        sim_tenure = st.slider("Tenure with Bank (Years)", min_value=0, max_value=10, value=1)
+        sim_credit = st.slider("Credit Score", min_value=350, max_value=850, value=670)
+        sim_card_str = st.selectbox("Has Credit Card?", ["Yes", "No"], index=0)
+        sim_card = 1 if sim_card_str == "Yes" else 0
+        sim_salary = st.number_input("Estimated Salary (INR)", min_value=10000.0, max_value=250000.0, value=75000.0, step=5000.0)
+
+    # Current profile dictionary
+    customer_profile = {
+        "age": sim_age,
+        "balance": sim_balance,
+        "num_products": sim_num_prod,
+        "is_active_member": sim_is_active,
+        "credit_score": sim_credit,
+        "tenure_years": sim_tenure,
+        "has_credit_card": sim_card,
+        "estimated_salary": sim_salary,
+    }
+
+    predicted_prob = predict_single_customer_churn(model_bundle, customer_profile)
+
+    with sim_c2:
+        st.markdown("##### 📊 Real-Time Predicted Attrition Risk")
+
+        # Color-coded risk status
+        if predicted_prob >= 50.0:
+            risk_color = "#D64545"
+            risk_badge = "CRITICAL / HIGH RISK"
+            badge_bg = "#FEF2F2"
+        elif predicted_prob >= 25.0:
+            risk_color = "#DD6B20"
+            risk_badge = "MODERATE RISK"
+            badge_bg = "#FFFAF0"
+        else:
+            risk_color = "#2E9E6B"
+            risk_badge = "LOW RISK / SAFE"
+            badge_bg = "#F0FDF4"
+
+        st.markdown(
+            f"""
+            <div style='background-color:{badge_bg}; border:2px solid {risk_color}; border-radius:12px; padding:20px; text-align:center; margin-bottom:20px;'>
+                <div style='font-size:0.9rem; font-weight:700; color:{risk_color}; letter-spacing:1px;'>{risk_badge}</div>
+                <div style='font-size:3rem; font-weight:800; color:{risk_color}; margin:8px 0;'>{predicted_prob:.1f}%</div>
+                <div style='font-size:0.95rem; color:#475569;'>Probability of this customer leaving the bank</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("##### 🎯 Simulated Retention Interventions")
+
+        # Scenario 1: Convert to Active Member
+        if sim_is_active == 0:
+            active_profile = dict(customer_profile, is_active_member=1)
+            active_prob = predict_single_customer_churn(model_bundle, active_profile)
+            diff_active = predicted_prob - active_prob
+            st.markdown(
+                f"""
+                <div class='insight-card'>
+                    <b>Intervention 1: Re-engage as Active Member</b><br>
+                    Predicted Churn drops from <b>{predicted_prob:.1f}%</b> to <b>{active_prob:.1f}%</b> 
+                    (<span style='color:#2E9E6B; font-weight:700;'>-{diff_active:.1f}% reduction</span>).
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                "<div class='insight-card'>Customer is already an <b>Active Member</b>. Maintaining regular digital/branch engagement keeps attrition low.</div>",
+                unsafe_allow_html=True,
+            )
+
+        # Scenario 2: Rationalize Products
+        if sim_num_prod >= 3:
+            opt_prod_profile = dict(customer_profile, num_products=2)
+            opt_prod_prob = predict_single_customer_churn(model_bundle, opt_prod_profile)
+            diff_prod = predicted_prob - opt_prod_prob
+            st.markdown(
+                f"""
+                <div class='insight-card'>
+                    <b>Intervention 2: Consolidate / Restructure Products to 2</b><br>
+                    Predicted Churn drops from <b>{predicted_prob:.1f}%</b> to <b>{opt_prod_prob:.1f}%</b> 
+                    (<span style='color:#2E9E6B; font-weight:700;'>-{diff_prod:.1f}% reduction</span>).
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f"<div class='insight-card'>Customer holds <b>{sim_num_prod} product(s)</b>, which is within the safe retention range (&le; 2 products).</div>",
+                unsafe_allow_html=True,
+            )
+

@@ -3,7 +3,7 @@ name = "churn-dashboard"
 version = "0.1.0"
 description = "Retail Banking Customer Churn Dashboard built with Streamlit and Plotly"
 authors = [
-    { name = "Yedage Amit Ramesh", email = "amitryedage@example.com" }
+    { name = "Yedage Amit Ramesh", email = "amitryedage371@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.0.0",
     "plotly>=5.18.0",
     "numpy>=1.24.0",
+    "scikit-learn>=1.3.0",
 ]
 
 [project.optional-dependencies]

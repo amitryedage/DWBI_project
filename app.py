@@ -22,6 +22,7 @@ from src.kpis import (
     compute_kpis,
     generate_top_insights,
     get_high_risk_customers,
+    get_segment_kpis,
 )
 
 # -----------------------------------------------------------------------------
@@ -131,17 +132,14 @@ def apply_filters(df: pd.DataFrame, selections: Dict[str, Any]) -> pd.DataFrame:
     """Filter the master DataFrame based on user selections."""
     filtered = df.copy()
 
-    if selections["cities"]:
-        filtered = filtered[filtered["city"].isin(selections["cities"])]
+    # If user deselected all options in any multiselect, return empty DataFrame cleanly
+    if not selections["cities"] or not selections["genders"] or not selections["age_groups"] or not selections["segments"]:
+        return filtered.iloc[0:0]
 
-    if selections["genders"]:
-        filtered = filtered[filtered["gender"].isin(selections["genders"])]
-
-    if selections["age_groups"]:
-        filtered = filtered[filtered["age_group"].isin(selections["age_groups"])]
-
-    if selections["segments"]:
-        filtered = filtered[filtered["customer_segment"].isin(selections["segments"])]
+    filtered = filtered[filtered["city"].isin(selections["cities"])]
+    filtered = filtered[filtered["gender"].isin(selections["genders"])]
+    filtered = filtered[filtered["age_group"].isin(selections["age_groups"])]
+    filtered = filtered[filtered["customer_segment"].isin(selections["segments"])]
 
     if selections["activity_status"] != "All":
         is_active = 1 if selections["activity_status"] == "Active" else 0
@@ -323,6 +321,25 @@ with tab1:
     insights = generate_top_insights(df_filtered)
     for insight in insights:
         st.markdown(f"<div class='insight-card'>{insight}</div>", unsafe_allow_html=True)
+
+    # Segment Performance Cards
+    st.markdown("#### 👥 Customer Segment Retention & Risk")
+    seg_df = get_segment_kpis(df_filtered)
+    if not seg_df.empty:
+        col_s1, col_s2, col_s3 = st.columns(3)
+        cols_list = [col_s1, col_s2, col_s3]
+        for idx, row in seg_df.iterrows():
+            with cols_list[idx % 3]:
+                st.markdown(
+                    f"""
+                    <div style='background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px 16px; margin-bottom:10px;'>
+                        <div style='font-size:0.82rem; font-weight:600; color:#64748B; text-transform:uppercase;'>{row['customer_segment']} Segment</div>
+                        <div style='font-size:1.35rem; font-weight:700; color:#1F4E9C; margin:3px 0;'>{row['churn_rate']:.1f}% Churn</div>
+                        <div style='font-size:0.85rem; color:#475569;'>{int(row['customer_count']):,} accounts · {format_inr(row['balance_at_risk'])} at risk</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
 # --- TAB 2: BALANCE ANALYSIS ---
 with tab2:

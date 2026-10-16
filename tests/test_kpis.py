@@ -70,15 +70,25 @@ def test_compute_kpis_empty():
 
 
 def test_churn_by_helper(sample_df: pd.DataFrame):
-    """Test grouping by city."""
+    """Test grouping by city and balance at risk."""
     grouped = churn_by(sample_df, "city")
     assert "city" in grouped.columns
     assert "customer_count" in grouped.columns
     assert "churn_rate" in grouped.columns
+    assert "balance_at_risk" in grouped.columns
 
     pune_row = grouped[grouped["city"] == "Pune"].iloc[0]
     assert pune_row["customer_count"] == 2
     assert pune_row["churn_rate"] == 50.0  # 1 out of 2 churned
+    assert pune_row["balance_at_risk"] == 120000.0  # customer 3 churned with 120k
+
+
+def test_segment_kpis(sample_df: pd.DataFrame):
+    """Test segment KPI aggregation."""
+    from src.kpis import get_segment_kpis
+    seg_df = get_segment_kpis(sample_df)
+    assert "customer_segment" in seg_df.columns
+    assert len(seg_df) > 0
 
 
 def test_high_risk_rule(sample_df: pd.DataFrame):

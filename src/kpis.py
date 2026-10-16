@@ -1,10 +1,12 @@
-
-
-from typing import Any, Dict
+from typing import Any, Dict, List
 import pandas as pd
 
 
 def compute_kpis(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Compute core banking KPIs (PRD Section 5).
+    Handles empty DataFrames gracefully without raising errors.
+    """
     total_customers = len(df)
 
     if total_customers == 0:
@@ -17,6 +19,9 @@ def compute_kpis(df: pd.DataFrame) -> Dict[str, Any]:
             "balance_at_risk": 0.0,
             "avg_tenure": 0.0,
             "avg_products": 0.0,
+            "active_member_pct": 0.0,
+            "credit_card_pct": 0.0,
+            "avg_credit_score": 0.0,
         }
 
     churned_series = df["churned"]
@@ -27,6 +32,9 @@ def compute_kpis(df: pd.DataFrame) -> Dict[str, Any]:
     balance_at_risk = float(df.loc[df["churned"] == 1, "balance"].sum())
     avg_tenure = float(df["tenure_years"].mean())
     avg_products = float(df["num_products"].mean())
+    active_member_pct = float(df["is_active_member"].mean() * 100.0)
+    credit_card_pct = float(df["has_credit_card"].mean() * 100.0)
+    avg_credit_score = float(df["credit_score"].mean())
 
     return {
         "total_customers": total_customers,
@@ -37,26 +45,53 @@ def compute_kpis(df: pd.DataFrame) -> Dict[str, Any]:
         "balance_at_risk": balance_at_risk,
         "avg_tenure": avg_tenure,
         "avg_products": avg_products,
+        "active_member_pct": active_member_pct,
+        "credit_card_pct": credit_card_pct,
+        "avg_credit_score": avg_credit_score,
     }
 
 
 def churn_by(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """
+    Calculate customer counts, churned count, churn rate, and balance at risk grouped by a column.
+    """
     if df.empty or column not in df.columns:
-        return pd.DataFrame(columns=[column, "customer_count", "churned_count", "churn_rate"])
+        return pd.DataFrame(
+            columns=[column, "customer_count", "churned_count", "churn_rate", "balance_at_risk", "avg_balance"]
+        )
+
+    df_temp = df.copy()
+    df_temp["_risk_balance"] = df_temp["balance"].where(df_temp["churned"] == 1, 0.0)
 
     grouped = (
-        df.groupby(column, observed=False)
+        df_temp.groupby(column, observed=False)
         .agg(
             customer_count=("churned", "count"),
             churned_count=("churned", "sum"),
             churn_rate=("churned", lambda x: (x.mean() * 100.0) if len(x) > 0 else 0.0),
+            balance_at_risk=("_risk_balance", "sum"),
+            avg_balance=("balance", "mean"),
         )
         .reset_index()
     )
     return grouped
 
 
+def get_segment_kpis(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compute customer volume, churn rate, and capital exposure per customer segment.
+    """
+    return churn_by(df, "customer_segment")
+
+
 def get_high_risk_customers(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filter high-risk customers based on PRD rule (Task 6.2):
+    - num_products >= 3
+    OR (is_active_member == 0 AND balance > 100,000)
+    OR (age >= 50 AND tenure_years <= 2)
+    Sorted by balance descending.
+    """
     if df.empty:
         return df.copy()
 
@@ -71,12 +106,12 @@ def get_high_risk_customers(df: pd.DataFrame) -> pd.DataFrame:
     return high_risk_df
 
 
-def generate_top_insights(df: pd.DataFrame) -> list[str]:
+def generate_top_insights(df: pd.DataFrame) -> List[str]:
     """Generate dynamic data-driven insights based on current dataset/filter."""
     if df.empty:
         return ["No data available to generate insights."]
 
-    insights = []
+    insights: List[str] = []
     overall_churn = df["churned"].mean() * 100.0
 
     # Insight 1: Multi-product churn risk (3+ products)
@@ -85,7 +120,7 @@ def generate_top_insights(df: pd.DataFrame) -> list[str]:
         multi_churn = multi_prod["churned"].mean() * 100.0
         insights.append(
             f"Customers with 3+ products show a churn rate of **{multi_churn:.1f}%** "
-            f"(vs overall average of **{overall_churn:.1f}%**)."
+            f"(vs overall portfolio average of **{overall_churn:.1f}%**)."
         )
 
     # Insight 2: Inactive high-balance accounts
@@ -95,7 +130,7 @@ def generate_top_insights(df: pd.DataFrame) -> list[str]:
         total_inact_bal = inactive_high_bal["balance"].sum()
         insights.append(
             f"Inactive customers with balances over ₹1 Lakh have a **{inact_churn:.1f}%** churn rate, "
-            f"accounting for ₹{total_inact_bal:,.0f} in capital."
+            f"representing ₹{total_inact_bal:,.0f} in capital at risk."
         )
 
     # Insight 3: City with highest churn rate
@@ -103,7 +138,7 @@ def generate_top_insights(df: pd.DataFrame) -> list[str]:
     if not city_churn.empty:
         highest_city = city_churn.sort_values(by="churn_rate", ascending=False).iloc[0]
         insights.append(
-            f"**{highest_city['city']}** has the highest churn rate at **{highest_city['churn_rate']:.1f}%** "
+            f"**{highest_city['city']}** exhibits the highest churn rate at **{highest_city['churn_rate']:.1f}%** "
             f"with {int(highest_city['churned_count']):,} churned customers."
         )
 

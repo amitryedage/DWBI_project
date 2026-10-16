@@ -37,6 +37,8 @@ wheels/
 .uv/
 
 # Testing
+tests/
+test/
 .pytest_cache/
 .coverage
 htmlcov/
@@ -51,3 +53,5 @@ htmlcov/
 *.swo
 .DS_Store
 Thumbs.db
+
+

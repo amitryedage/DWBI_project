@@ -56,19 +56,6 @@ pytest
 
 ---
 
-## 📊 Dashboard Architecture & Pages
-
-| Page | Key Visualizations & Metrics |
-|---|---|
-| **Page 1: Overview** | KPI metric cards (Churn Rate, Total Customers, Avg Balance, Avg Tenure, Avg Products), Donut chart (Retained vs. Churned), Horizontal bar chart of Churn by City, and Automated Dynamic Insights. |
-| **Page 2: Balance Analysis** | Churn rate across 5 balance bands, Overlay histogram of balance distributions (Retained vs. Churned), and Capital Exposure callout card. |
-| **Page 3: Tenure Analysis** | Churn rate trajectory by tenure year (0–10 yrs), Stacked bar chart of customer volume across tenure bands. |
-| **Page 4: Products Held** | Churn rate by product count (1 to 4 products), Churn rate Heatmap cross-tabulating products held against member activity. |
-| **Page 5: Risk & Data** | Actionable High-Risk customer table (sorted by balance), filtered data export, and high-risk action list export to CSV. |
-| **Page 6: What-If Simulator & ML** | Predictive churn models (Random Forest / Logistic Regression), feature importance chart, and interactive single-customer retention simulator quantifying risk reduction. |
-
----
-
 ## 🛡️ High-Risk Customer Identification Rule
 
 A customer is flagged for immediate intervention if they meet any of the following criteria:

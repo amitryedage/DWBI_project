@@ -76,19 +76,7 @@ A customer is flagged for immediate intervention if they meet any of the followi
 2. Is an **Inactive Member** with an account balance **> ₹1,00,000** (capital flight risk).
 3. Is **Age 50+** with tenure **≤ 2 years** (vulnerable onboarding window).
 
----
 
-## 🎨 Design System & Theme
-
-Adheres strictly to the PRD light theme guidelines:
-- **Base Background:** `#FFFFFF`
-- **Secondary / Card Background:** `#F4F6FA`
-- **Primary Accent:** `#1F4E9C`
-- **Retained Indicator:** `#2E9E6B`
-- **Churn / Alert Indicator:** `#D64545`
-- **Plotly Theme:** `plotly_white`
-
----
 
 ## 📁 Project Structure
 

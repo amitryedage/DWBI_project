@@ -51,15 +51,4 @@ $$\text{Risk Flag} = (\text{num\_products} \ge 3) \lor (\text{is\_active} = 0 \l
 
 ---
 
-## 4. Strategic Recommendations for Retention Teams
 
-1. **Restructure Cross-Selling Policies:**
-   * Stop pushing 3rd and 4th products immediately during account opening.
-   * Shift product manager KPIs from "products sold" to "30-day active product engagement".
-2. **Launch an Inactive Wealth Re-Engagement Workflow:**
-   * Automate alerts to branch relationship managers whenever an account with balance > ₹1,00,000 shows zero transactions over 45 days.
-   * Offer concierge relationship banking or personalized wealth management reviews.
-3. **Dedicated Onboarding for Senior Depositors:**
-   * Provide assisted onboarding calls and simplified mobile banking walkthroughs for new customers aged 50+.
-4. **Branch Retention Scorecards:**
-   * Equip branch managers in high-churn cities with monthly retention scorecards and localized win-back incentives.
